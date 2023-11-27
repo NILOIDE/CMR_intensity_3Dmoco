@@ -4,6 +4,9 @@ from typing import Union, Optional, Tuple, List, Dict
 import numpy as np
 import torch
 
+from data_classes import SubjectData
+from data_utils import find_subjects
+
 MEAN_SAX_LV_VALUE = 222.7909
 MAX_SAX_VALUE = 487.0
 MEAN_4CH_LV_VALUE = 224.8285
@@ -152,3 +155,73 @@ def to_radians(x):
 
 def to_degrees(x):
     return x * 180 / math.pi
+
+
+def calculate_distances(p1, p2):
+    """ Calculate distances from every point in p1 to every point in p2 """
+    assert len(p1.shape) == len(p2.shape)
+    assert p1.shape[-1] == p2.shape[-1]
+    dists = p1.unsqueeze(-2) - p2.unsqueeze(-3)
+    dists = dists * dists
+    dists = dists.sum(-1)
+    return dists
+
+
+def interpolate_la_with_sa(la_images: List[torch.Tensor], la_affines: List[torch.Tensor],
+                           sa_images: List[torch.Tensor], sa_affines: List[torch.Tensor]) \
+        -> List[torch.Tensor]:
+
+    la_interps = []
+    for la_im, la_aff in zip(la_images, la_affines):
+        sa_coords = []
+        sa_values = []
+        for i, (sax_im, aff) in enumerate(zip(sa_images, sa_affines)):
+            sac = torch.meshgrid(torch.arange(0, sax_im.shape[0], dtype=la_im.dtype, device=la_im.device),
+                                 torch.arange(0, sax_im.shape[1], dtype=la_im.dtype, device=la_im.device))
+            sac = torch.stack(sac, -1).reshape(-1, 2)
+            sac = torch.cat((sac, torch.zeros_like(sac[:, :1]), torch.ones_like(sac[:, :1])), -1)
+            sacw = (aff @ sac.t()).t()
+            sav = sax_im[..., 0].reshape(-1, 1)
+            sa_coords.append(sacw)
+            sa_values.append(sav)
+        sa_coords = torch.cat(sa_coords, 0)[:, :3]
+        sa_values = torch.cat(sa_values, 0)
+
+        pad = 0
+        lac = torch.meshgrid(torch.arange(0 - pad, la_im.shape[0] + pad, dtype=la_im.dtype, device=la_im.device),
+                             torch.arange(0 - pad, la_im.shape[1] + pad, dtype=la_im.dtype, device=la_im.device))
+        lac = torch.stack(lac, -1).reshape(-1, 2)
+        lac = torch.cat((lac, torch.zeros_like(lac[:, :1]), torch.ones_like(lac[:, :1])), -1)
+        lac_world = (la_aff @ lac.t()).t()
+        lac_world = lac_world[:, :3]
+
+        # To avoid memory issues, split the distance calculation into pieces
+        closest = []
+        step_size = 1
+        for i in range(0, lac_world.shape[0], step_size):
+            c = calculate_distances(lac_world[i:i + step_size], sa_coords).argmin(-1)
+            closest.append(c)
+        closest = torch.cat(closest, 0)
+
+        la_newv = sa_values[closest]
+        la_newv = la_newv.reshape(la_im.shape[0] + pad * 2, la_im.shape[1] + pad * 2)
+        la_newv = la_newv.cpu()
+        la_interps.append(la_newv)
+    return la_interps
+
+
+if __name__ == '__main__':
+    download_dir = r"D:\UKBB_subjects"
+    registered_dataset_dir = r"D:\UKBB_subjects_aligned"
+    sax_unregistered_dataset_dir = r"D:\UKBB_subjects_unaligned"
+    subject_list = find_subjects(download_dir, sax_unregistered_dataset_dir, num_subj=1)
+    subject = SubjectData(subject_list[0])
+    # Find la images by name
+    la_images = [im.cpu() for im, name in zip(subject.images, subject.names) if name[:2] == "la"]
+    la_affines = [aff.cpu() for aff, name in zip(subject.affines, subject.names) if name[:2] == "la"]
+
+    sa_images = [im.cpu() for im, name in zip(subject.images, subject.names) if name[:2] == "sa"]
+    sa_affines = [aff.cpu() for aff, name in zip(subject.affines, subject.names) if name[:2] == "sa"]
+    la_interpolations = interpolate_la_with_sa(la_images, la_affines, sa_images, sa_affines)
+    la_interpolations = [normalize_image(i.numpy()) for i in la_interpolations]
+    print(1)

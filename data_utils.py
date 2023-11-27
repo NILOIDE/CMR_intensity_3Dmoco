@@ -1,10 +1,8 @@
 import shutil
 from dataclasses import dataclass
-import time
 from typing import Union, Optional, Tuple, List, Dict
 
 import numpy as np
-import torch
 import os
 from pathlib import Path
 import nibabel as nib
@@ -87,12 +85,18 @@ def split_sax_into_slices(sax_path: str, save_dir: str, skip_exist=True) -> Tupl
     return slice_files, seg_slice_files
 
 
-def find_subjects(dataset_dir: str, sax_slice_dataset_dir: str, remove_sa_slices: bool = False) -> List[SubjectFiles]:
+def find_subjects(dataset_dir: str, sax_slice_dataset_dir: str,
+                  remove_sa_slices: bool = False, num_subj: int = None) -> List[SubjectFiles]:
     dataset_dir = Path(dataset_dir)
     sax_slice_dataset_dir = Path(sax_slice_dataset_dir)
     assert dataset_dir.is_dir()
     subject_list = []
-    for subj_dir in tqdm(list(dataset_dir.iterdir()), desc="Iterating over subject directory"):
+    subjects = list(dataset_dir.iterdir())
+    if num_subj is not None:
+        assert num_subj > 0
+        subjects = subjects[:num_subj]
+
+    for subj_dir in tqdm(subjects, desc="Iterating over subject directory"):
         sax_slices = None
         seg_sax_slices = None
         if (subj_dir / "sa_slices").exists():
@@ -136,8 +140,8 @@ def find_subjects(dataset_dir: str, sax_slice_dataset_dir: str, remove_sa_slices
 
 def download_subject_images(subject_list: List[str],
                             download_dir: str,
-                            hostname="131.159.110.19",
-                            username="stol",
+                            hostname="-",
+                            username="-",
                             password=":)",
                             subjects_folder="/vol/aimspace/projects/ukbb/cardiac/cardiac_segmentations/subjects/",
                             remove_subj_on_issue=True,
@@ -287,8 +291,8 @@ def download_subject_images(subject_list: List[str],
 
 def download_substring_matching_subjects(keys: List[str],
                                          download_dir: str,
-                                         hostname="131.159.110.9",
-                                         username="siderila",
+                                         hostname="-",
+                                         username="-",
                                          password=":)",
                                          subjects_folder="/vol/aimspace/projects/ukbb/cardiac/cardiac_segmentations/subjects/",
                                          ):
@@ -319,6 +323,8 @@ if __name__ == '__main__':
     os.environ["KMP_DUPLICATE_LIB_OK"] = "1"
     remote_subj_dir = "/vol/aimspace/projects/ukbb/cardiac/cardiac_segmentations/subjects/"
     download_dir = "/home/pti/Documents/datasets/UKBB_subjects/"
+    hostname = input("Hostname:")
+    username = input("Username:")
     password = input("Password:")
     download_substring_matching_subjects([], download_dir, subjects_folder=remote_subj_dir, password=password)
     subject_list = find_subjects(download_dir, sax_slice_dataset_dir="/home/pti/Documents/datasets/UKBB_subjects_unaligned")
