@@ -404,6 +404,9 @@ def optimize_affines(images, affines, pair_indices, shapes, spacings,
         print("Rot diff:", param_diff[:, :3])
         print("Tra diff:", param_diff[:, 3:])
         plt.plot(losses)
+        plt.xlabel("Optimization steps")
+        plt.ylabel("Total Inter-slice Intensity Error (L2)")
+        plt.title("Total intensity error across slices over optimization process")
         plt.show()
     new_params = mat_to_params(affines.clone(), spacings, needs_flip)
     return best_affines, new_params, param_diff
@@ -427,11 +430,11 @@ def parse_command_line():
                               )
     parser_align.add_argument("-e", "--max_epochs",
                               help="Maximum optimization epochs", required=False,
-                              default=100,
+                              default=10000,
                               )
     parser_align.add_argument("-ese", "--early_stop_epochs",
                               help="Number of epochs of no impovement before optimization stops", required=False,
-                              default=100,
+                              default=1000,
                               )
     parser_align.add_argument("-n", "--num_subjects",
                               help="Number of subjects to use.", required=False,
@@ -470,7 +473,7 @@ def align_images(subject_dir: str, unregistered_dir: str, registered_dir: str,
                  max_epochs: int, early_stop_epochs: int, num_subjects: int, visualize=False):
     subject_list = find_subjects(subject_dir, unregistered_dir)
     num_subjects = len(subject_list) if num_subjects <= 0 else num_subjects
-    for idx, sub in enumerate(subject_list[0:num_subjects]):
+    for idx, sub in enumerate(subject_list[:num_subjects]):
         print(f"Subject: {sub.name}     Idx: {idx}")
         subject_data = SubjectData(sub)
 
