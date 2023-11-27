@@ -20,7 +20,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "1"
 
 from geo_utils import get_image_plane_from_array, plane_intersection, closest_point_on_line, batch_normalize_vector
 from utils import normalize_image, normalize_image_with_mean_lv_value, fast_trilinear_interpolation, mat_to_params, \
-    params_to_mat
+    params_to_mat, to_radians
 from data_utils import SubjectFiles, find_subjects
 from metrics import L2, L1
 
@@ -518,8 +518,8 @@ def random_align_sweep(registered_dir, max_epochs, early_stop_epochs, num_subjec
     print("Deforming....", registered_dir)
     subject_list = find_subjects(registered_dir, registered_dir)
     num_subjects = len(subject_list) if num_subjects <= 0 else num_subjects
-    rot_deform = [0, 5,]
-    tra_deform = [0, 5,]
+    rot_deform = [0, 5, 15, 45]  # In degrees
+    tra_deform = [0, 5, 15, 45]  # In mm
     pickle_name = "results.pkl"
     try:
         with open(pickle_name, 'rb') as handle:
@@ -542,7 +542,7 @@ def random_align_sweep(registered_dir, max_epochs, early_stop_epochs, num_subjec
         params = mat_to_params(affines, spacings, aff_needs_flip)
         for i, (r, t) in enumerate(itertools.product(rot_deform, tra_deform)):
             print(r, t)
-            r_rad = r * math.pi / 180
+            r_rad = to_radians(r)  # To radians
             result = []
             deform = torch.tensor([r_rad, r_rad, r_rad, t, t, t], device=params.device).reshape((1, params.shape[1]))
             deform = deform.tile((params.shape[0], 1))

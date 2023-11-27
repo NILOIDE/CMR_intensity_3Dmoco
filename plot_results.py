@@ -7,6 +7,8 @@ import seaborn as sns
 import torch
 from tqdm import tqdm
 
+from utils import to_degrees
+
 
 def plot_param_diff(results: Dict[Tuple[int, int], List[List[torch.Tensor]]]):
     data = []
@@ -14,20 +16,22 @@ def plot_param_diff(results: Dict[Tuple[int, int], List[List[torch.Tensor]]]):
         for subj in values:
             for diff in subj:
                 v = diff.abs().mean(0).detach().cpu()
+                rot = to_degrees(v[:3])
+                tra = v[3:]
                 data.append([r, t, f"±{str('{:.1f}'.format(r / 2))}° - ±{str('{:.1f}'.format(t / 2))}mm",
-                             v[:3].mean().item(), "Avg rotation error"])
+                             rot.mean().item(), "Avg rotation error (degrees)"])
                 data.append([r, t, f"±{str('{:.1f}'.format(r / 2))}° - ±{str('{:.1f}'.format(t / 2))}mm",
-                             v[:3].max().item(), "Max rotation error"])
+                             rot.max().item(), "Max rotation error (degrees)"])
                 data.append([r, t, f"±{str('{:.1f}'.format(r / 2))}° - ±{str('{:.1f}'.format(t / 2))}mm",
-                             v[3:].mean().item(), "Avg translation error"])
+                             tra.mean().item(), "Avg translation error (mm)"])
                 data.append([r, t, f"±{str('{:.1f}'.format(r / 2))}° - ±{str('{:.1f}'.format(t / 2))}mm",
-                             v[3:].max().item(), "Max translation error"])
+                             tra.max().item(), "Max translation error (mm)"])
     data = pd.DataFrame(data, columns=["r", "t", "rt", "v", "Legend"])
     plt.clf()
     plt.close("all")
     plt.figure(figsize=(28, 8))
-    my_pal = {"Avg rotation error": "g", "Max rotation error": "cyan", "Avg translation error": "r",
-              "Max translation error": "pink"}
+    my_pal = {"Avg rotation error (degrees)": "g", "Max rotation error (degrees)": "cyan",
+              "Avg translation error (mm)": "r", "Max translation error (mm)": "pink"}
     bp = sns.boxplot(data, y="v", x="rt", hue="Legend", gap=.2, width=0.8, whis=999, palette=my_pal)
     bp.axes.set_title("Absolute error distrbutions of final parameters with respect to motion-free "
                       "parameters.\nN=10 subjects, 10 repeats per subject", fontsize=20)
@@ -50,29 +54,29 @@ def plot_param_diff_before_after(results: Dict[Tuple[int, int], List[List[torch.
     for (r, t), values in tqdm(results.items()):
         for subj in values:
             # Expected random value
-            r_rad = r * math.pi / 180
             deform = torch.tensor([r, r, r, t, t, t]).reshape((1, 6))
             deform = deform.tile((13, 1))
             rand_diff = (torch.rand((10, *deform.shape)) * deform - deform / 2).abs()
             for v in rand_diff[:, :3].flatten():
                 rand_list.append([r, t, f"±{str('{:.1f}'.format(r / 2))}° - ±{str('{:.1f}'.format(t / 2))}mm",
-                                  v.detach().cpu().item(), "Starting rotation error"])
+                                  v.detach().cpu().item(), "Starting rotation error (degrees)"])
             for v in rand_diff[:, 3:].flatten():
                 rand_list.append([r, t, f"±{str('{:.1f}'.format(r / 2))}° - ±{str('{:.1f}'.format(t / 2))}mm",
-                                  v.detach().cpu().item(), "Starting translation error"])
+                                  v.detach().cpu().item(), "Starting translation error (mm)"])
     rand_data = pd.DataFrame(rand_list, columns=["r", "t", "rt", "v", "Legend"])
     for (r, t), values in tqdm(results.items()):
         for subj in values:
             for diff in subj:
                 v = diff.abs().detach().cpu()
                 for v_ in v[:, :3].flatten():
+                    v_ = to_degrees(v_)
                     data_list.append(
                         [r, t, f"±{str('{:.1f}'.format(r / 2))}° - ±{str('{:.1f}'.format(t / 2))}mm",
-                         v_.item(), "Final rotation error"])
+                         v_.item(), "Final rotation error (degrees)"])
                 for v_ in v[:, 3:].flatten():
                     data_list.append(
                         [r, t, f"±{str('{:.1f}'.format(r / 2))}° - ±{str('{:.1f}'.format(t / 2))}mm",
-                         v_.item(), "Final translation error"])
+                         v_.item(), "Final translation error (mm)"])
     subj_data = pd.DataFrame(data_list, columns=["r", "t", "rt", "v", "Legend"])
     data = pd.concat((rand_data, subj_data))
     plt.clf()

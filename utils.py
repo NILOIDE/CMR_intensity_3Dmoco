@@ -1,3 +1,4 @@
+import math
 from typing import Union, Optional, Tuple, List, Dict
 
 import numpy as np
@@ -143,3 +144,11 @@ def params_to_mat(params: torch.Tensor, spacings: torch.Tensor, needs_flip: torc
     affines[:, :3, 3] = translation
     affines = flip_affine(affines, needs_flip)
     return affines
+
+
+def to_radians(x):
+    return x * math.pi / 180
+
+
+def to_degrees(x):
+    return x * 180 / math.pi
