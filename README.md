@@ -28,12 +28,11 @@ We sample points along the intersection and minimize the difference in intensiti
 Please cite this work if any of our code or ideas are helpful for your research.
 
 ```
-@inproceedings{stolt2023nisf,
-  title={NISF: Neural Implicit Segmentation Functions},
-  author={Stolt-Ans{\'o}, Nil and McGinnis, Julian and Pan, Jiazhen and Hammernik, Kerstin and Rueckert, Daniel},
-  booktitle={International Conference on Medical Image Computing and Computer-Assisted Intervention},
-  pages={734--744},
-  year={2023},
-  organization={Springer}
+@inproceedings{TODO,
+  title={Intensity-based 3D motion correction for cardiac MR images},
+  author={Stolt-Ans{\'o}, Nil and Sideri-Lampretsa, Vasiliki and Dannecker, Maik and Rueckert, Daniel},
+  booktitle={TODO},
+  year={2024},
+  organization={TODO}
 }
 ```
