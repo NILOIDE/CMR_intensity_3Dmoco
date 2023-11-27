@@ -18,7 +18,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "1"
 from geo_utils import get_image_plane_from_array, plane_intersection, closest_point_on_line, batch_normalize_vector
 from utils import normalize_image, normalize_image_with_mean_lv_value, fast_trilinear_interpolation, mat_to_params, \
     params_to_mat, to_radians
-from data_utils import SubjectFiles, find_subjects
+from data_utils import find_subjects
 from metrics import L2, L1
 
 
