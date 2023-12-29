@@ -106,7 +106,10 @@ def find_subjects(dataset_dir: str, sax_slice_dataset_dir: str,
             seg_sax_slices = [str(i) for i in sa_files if i.name[:3] == "seg"]
         if sax_slices is None or not sax_slices or remove_sa_slices:
             if remove_sa_slices:
-                shutil.rmtree(str(subj_dir / "sa_slices"))
+                try:
+                    shutil.rmtree(str(subj_dir / "sa_slices"))
+                except FileNotFoundError:
+                    pass
             sa_file = subj_dir / "sa.nii.gz"
             if not sa_file.exists() or not sa_file.is_file() or sa_file.stat().st_size == 0:
                 continue
