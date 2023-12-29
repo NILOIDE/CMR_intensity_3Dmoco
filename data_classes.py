@@ -34,7 +34,7 @@ class SubjectData:
                 self.planes.append(OptimizableImage(nii_4ch.dataobj[:].squeeze(2), nii_4ch.affine, nii_4ch.header.get_zooms()[:3], "la_4ch", seg=nii_4ch_seg))
                 index += 1
             except FileNotFoundError as e:
-                print(f"Subject {subject.name}: 4ch image not found")
+                print(f"Subject {subject.name}: 4ch image not found.\n", e)
         if subject.la3ch is not None:
             try:
                 nii_3ch = nib.load(subject.la3ch)
@@ -44,7 +44,7 @@ class SubjectData:
                 self.planes.append(OptimizableImage(nii_3ch.dataobj[:].squeeze(2), nii_3ch.affine, nii_3ch.header.get_zooms()[:3], "la_3ch", seg=nii_3ch_seg))
                 index += 1
             except FileNotFoundError as e:
-                print(f"Subject {subject.name}: 3ch image not found")
+                print(f"Subject {subject.name}: 3ch image not found.\n", e)
         if subject.la2ch is not None:
             try:
                 nii_2ch = nib.load(subject.la2ch)
@@ -54,7 +54,7 @@ class SubjectData:
                 self.planes.append(OptimizableImage(nii_2ch.dataobj[:].squeeze(2), nii_2ch.affine, nii_2ch.header.get_zooms()[:3], "la_2ch", seg=nii_2ch_seg))
                 index += 1
             except FileNotFoundError as e:
-                print(f"Subject {subject.name}: 2ch image not found")
+                print(f"Subject {subject.name}: 2ch image not found.\n", e)
         # Index pairs for all Long-axis to Long-axis image pairs (if 2ch, 3ch, 4ch are present, that will be 3 pairs)
         la_la_product = [*combinations(list(range(len(self.planes))), 2)]
         # Long-axis to Short-axis image pairs combinations (if 3 LA images and N SA images, that will be 3*N pairs)
