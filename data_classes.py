@@ -30,7 +30,10 @@ class SubjectData:
                 nii_4ch = nib.load(subject.la4ch)
                 nii_4ch_seg = None
                 if subject.la4ch_seg is not None:
-                    nii_4ch_seg = nib.load(subject.la4ch_seg).dataobj[:]
+                    try:
+                        nii_4ch_seg = nib.load(subject.la4ch_seg).dataobj[:]
+                    except FileNotFoundError as e:
+                        print(f"Subject {subject.name}: 4ch segmentation not found.")
                 self.planes.append(OptimizableImage(nii_4ch.dataobj[:].squeeze(2), nii_4ch.affine, nii_4ch.header.get_zooms()[:3], "la_4ch", seg=nii_4ch_seg))
                 index += 1
             except FileNotFoundError as e:
@@ -40,7 +43,10 @@ class SubjectData:
                 nii_3ch = nib.load(subject.la3ch)
                 nii_3ch_seg = None
                 if subject.la3ch_seg is not None:
-                    nii_3ch_seg = nib.load(subject.la3ch_seg).dataobj[:]
+                    try:
+                        nii_3ch_seg = nib.load(subject.la3ch_seg).dataobj[:]
+                    except FileNotFoundError as e:
+                        print(f"Subject {subject.name}: 3ch segmentation not found.")
                 self.planes.append(OptimizableImage(nii_3ch.dataobj[:].squeeze(2), nii_3ch.affine, nii_3ch.header.get_zooms()[:3], "la_3ch", seg=nii_3ch_seg))
                 index += 1
             except FileNotFoundError as e:
@@ -50,7 +56,10 @@ class SubjectData:
                 nii_2ch = nib.load(subject.la2ch)
                 nii_2ch_seg = None
                 if subject.la4ch_seg is not None:
-                    nii_2ch_seg = nib.load(subject.la2ch_seg).dataobj[:]
+                    try:
+                        nii_2ch_seg = nib.load(subject.la2ch_seg).dataobj[:]
+                    except FileNotFoundError as e:
+                        print(f"Subject {subject.name}: 2ch segmentation not found.")
                 self.planes.append(OptimizableImage(nii_2ch.dataobj[:].squeeze(2), nii_2ch.affine, nii_2ch.header.get_zooms()[:3], "la_2ch", seg=nii_2ch_seg))
                 index += 1
             except FileNotFoundError as e:
