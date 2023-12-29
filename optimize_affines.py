@@ -376,7 +376,7 @@ def align_images(subject_dir: str, unregistered_dir: str, registered_dir: str,
         print(f"Subject: {sub.name}     Idx: {idx}")
         subj_path = save_path / sub.name
 
-        if overwrite_existing:
+        if not overwrite_existing:
             # If a subject has an aligned directory that is non-empty, skip it
             if subj_path.exists() and len(list(subj_path.iterdir())) > 2:
                 print(f"Skipping...")
