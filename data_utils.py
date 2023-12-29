@@ -94,6 +94,7 @@ def find_subjects(dataset_dir: str, sax_slice_dataset_dir: str,
     subjects = list(dataset_dir.iterdir())
     if num_subj is not None:
         assert num_subj > 0
+        print(f"Only {num_subj}/{len(subjects)} will be procesed")
         subjects = subjects[:num_subj]
 
     for subj_dir in tqdm(subjects, desc="Iterating over subject directory"):

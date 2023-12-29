@@ -363,7 +363,7 @@ def parse_command_line():
 
 def align_images(subject_dir: str, unregistered_dir: str, registered_dir: str,
                  max_epochs: int, early_stop_epochs: int, num_subjects: int, visualize=False):
-    subject_list = find_subjects(subject_dir, unregistered_dir)
+    subject_list = find_subjects(subject_dir, unregistered_dir, num_subjects)
     num_subjects = len(subject_list) if num_subjects <= 0 else num_subjects
     for idx, sub in enumerate(subject_list[:num_subjects]):
         print(f"Subject: {sub.name}     Idx: {idx}")
