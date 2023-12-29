@@ -332,9 +332,13 @@ def parse_command_line():
                               help="Number of subjects to use.", required=False,
                               default=-1,
                               )
+    parser_align.add_argument("-o", "--overwrite_existing",
+                              help="Whether to overwrite previously optmized subjects",
+                              action='store_true'
+                              )
     parser_align.add_argument("-v", "--visualize",
-                              help="Visualize loss curve and final aligned side-by-side image intersections", required=False,
-                              default=False,
+                              help="Visualize loss curve and final aligned side-by-side image intersections",
+                              action='store_true'
                               )
 
     # Randomly misalign slices and correct motion
@@ -362,11 +366,20 @@ def parse_command_line():
 
 
 def align_images(subject_dir: str, unregistered_dir: str, registered_dir: str,
-                 max_epochs: int, early_stop_epochs: int, num_subjects: int, visualize=False):
+                 max_epochs: int, early_stop_epochs: int,
+                 num_subjects: int, overwrite_existing=False, visualize=False):
     subject_list = find_subjects(subject_dir, unregistered_dir, num_subj=num_subjects)
     num_subjects = len(subject_list) if num_subjects <= 0 else num_subjects
+    save_path = Path(registered_dir)
+    save_path.mkdir(exist_ok=True)
     for idx, sub in enumerate(subject_list[:num_subjects]):
         print(f"Subject: {sub.name}     Idx: {idx}")
+        subj_path = save_path / sub.name
+
+        if overwrite_existing:
+            # If a subject has an aligned directory that is non-empty, skip it
+            if subj_path.exists() and len(list(subj_path.iterdir())) > 2:
+                continue
         subject_data = SubjectData(sub)
 
         images_pad = subject_data.images_pad.clone()
@@ -396,10 +409,8 @@ def align_images(subject_dir: str, unregistered_dir: str, registered_dir: str,
             print(
                 f"  {plane_names[idx_pairs[i, 0]]} - {plane_names[idx_pairs[i, 1]]} loss change:  {final_loss[i] - start_loss[i]}")
 
-        save_path = Path(registered_dir)
-        save_path.mkdir(exist_ok=True)
-        print(str(save_path / sub.name))
-        subject_data.save_niftis(str(save_path / sub.name), new_affines)
+        print(subj_path)
+        subject_data.save_niftis(str(subj_path), new_affines)
         if visualize:
             visualize_intersection_differences(images_pad, affines, new_affines, idx_pairs, shapes, names=plane_names)
 
@@ -463,7 +474,8 @@ if __name__ == '__main__':
     args = parse_command_line()
     if args.pipeline is None or args.pipeline == "align":
         align_images(args.subject_dir, args.unregistered_dir, args.registered_dir,
-                     int(args.max_epochs), int(args.early_stop_epochs), int(args.num_subjects), bool(args.visualize))
+                     int(args.max_epochs), int(args.early_stop_epochs), int(args.num_subjects),
+                     bool(args.overwrite_existing), bool(args.visualize))
     elif args.pipeline == "random_align":
         random_align_sweep(args.registered_dir, int(args.max_epochs),
                            int(args.early_stop_epochs), int(args.num_subjects), int(args.num_randomizations))

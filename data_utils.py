@@ -92,9 +92,12 @@ def find_subjects(dataset_dir: str, sax_slice_dataset_dir: str,
     assert dataset_dir.is_dir()
     subject_list = []
     subjects = list(dataset_dir.iterdir())
-    if num_subj is not None:
+
+    if num_subj is None or num_subj == -1:
+        pass
+    else:
         assert num_subj > 0
-        print(f"Only {num_subj}/{len(subjects)} will be procesed")
+        print(f"{num_subj}/{len(subjects)} subjects will be procesed")
         subjects = subjects[:num_subj]
 
     for subj_dir in tqdm(subjects, desc="Iterating over subject directory"):
@@ -334,4 +337,4 @@ if __name__ == '__main__':
     subject_list = find_subjects(download_dir, sax_slice_dataset_dir="/home/pti/Documents/datasets/UKBB_subjects_unaligned")
     print(len(subject_list))
     # ims_, anns_ = [i for i, j, in ann_pairs], [j for i, j, in ann_pairs]
-    # print(len(ann_pairs), "SAX subjects")
+  
