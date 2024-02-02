@@ -106,39 +106,50 @@ def find_subjects(dataset_dir: str, unaligned_dataset_dir: str,
     for subj_dir in tqdm(subjects, desc="Iterating over subject directory"):
         sax_slices = None
         seg_sax_slices = None
-        if (subj_dir / "sa_slices").exists():
+        if (subj_dir / "sa_slices").exists() and not remove_sa_slices:
             sa_files = list((subj_dir / "sa_slices").iterdir())
-            sax_slices = [str(i) for i in sa_files if i.name[:2] == "sa"]
-            seg_sax_slices = [str(i) for i in sa_files if i.name[:3] == "seg"]
-        if sax_slices is None or not sax_slices or remove_sa_slices:
+            if sa_files:
+                num_slices = int(sa_files[0].name[-len(".nii.gz") - 2: -len(".nii.gz")])
+                sax_slices = [subj_dir / "sa_slices" / f"sa_{i:02d}-{num_slices:02d}.nii.gz" for i in range(num_slices)]
+                seg_sax_slices = [subj_dir / "sa_slices" / f"seg_sa_{i:02d}-{num_slices:02d}.nii.gz" for i in range(num_slices)]
+                if len(sa_files) != num_slices or len(seg_sax_slices) != num_slices:
+                    sax_slices = None
+                    seg_sax_slices = None
+        if sax_slices is None:
             if remove_sa_slices:
                 try:
                     shutil.rmtree(str(unaligned_dataset_dir / subj_dir.name / "sa_slices"))
+                    print("Removed SA slices")
                 except FileNotFoundError:
                     pass
             sa_file = subj_dir / "sa.nii.gz"
             if not sa_file.exists() or not sa_file.is_file() or sa_file.stat().st_size == 0:
+                print(f"LA4ch file does not exist: {sa_file} \nSkipping...")
                 continue
             try:
                 sax_slices, seg_sax_slices = split_sax_into_slices(str(sa_file), save_dir=str(unaligned_dataset_dir / subj_dir.name / "sa_slices"))
             except Exception as e:
+                print(f"Exception found while splitting SA: {e}.  Skipping...")
                 continue
         la4ch = unaligned_dataset_dir / subj_dir.name / "la_4ch.nii.gz"
         if not la4ch.exists() or not la4ch.is_file() or la4ch.stat().st_size == 0:
             orig_path = subj_dir / "la_4ch.nii.gz"
             if not orig_path.exists() or not orig_path.is_file() or orig_path.stat().st_size == 0:
+                print(f"LA4ch file does not exist: {la4ch} \nSkipping...")
                 continue
             shutil.copy(str(orig_path), str(la4ch))
         la3ch = unaligned_dataset_dir / subj_dir.name / "la_3ch.nii.gz"
         if not la3ch.exists() or not la3ch.is_file() or la3ch.stat().st_size == 0:
             orig_path = subj_dir / "la_3ch.nii.gz"
             if not orig_path.exists() or not orig_path.is_file() or orig_path.stat().st_size == 0:
+                print(f"LA3ch file does not exist: {la3ch} \nSkipping...")
                 continue
             shutil.copy(str(orig_path), str(la3ch))
         la2ch = unaligned_dataset_dir / subj_dir.name / "la_2ch.nii.gz"
         if not la2ch.exists() or not la2ch.is_file() or la2ch.stat().st_size == 0:
             orig_path = subj_dir / "la_2ch.nii.gz"
             if not orig_path.exists() or not orig_path.is_file() or orig_path.stat().st_size == 0:
+                print(f"LA2ch file does not exist: {la2ch} \nSkipping...")
                 continue
             shutil.copy(str(orig_path), str(la2ch))
         seg_la4ch = unaligned_dataset_dir / subj_dir.name / "seg_la_4ch.nii.gz"
