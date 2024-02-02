@@ -34,7 +34,7 @@ class SubjectData:
                         nii_4ch_seg = nib.load(subject.la4ch_seg).dataobj[:]
                     except FileNotFoundError as e:
                         print(f"Subject {subject.name}: 4ch segmentation not found.")
-                self.planes.append(OptimizableImage(nii_4ch.dataobj[:].squeeze(2), nii_4ch.affine, nii_4ch.header.get_zooms()[:3], "la_4ch", seg=nii_4ch_seg))
+                self.planes.append(OptimizableImage(nii_4ch.dataobj[:].squeeze(2), nii_4ch.affine, nii_4ch.header.get_zooms()[:3], Path(subject.la4ch).name.split(".")[0], seg=nii_4ch_seg))
                 index += 1
             except FileNotFoundError as e:
                 print(f"Subject {subject.name}: 4ch image not found.\n", e)
@@ -47,7 +47,7 @@ class SubjectData:
                         nii_3ch_seg = nib.load(subject.la3ch_seg).dataobj[:]
                     except FileNotFoundError as e:
                         print(f"Subject {subject.name}: 3ch segmentation not found.")
-                self.planes.append(OptimizableImage(nii_3ch.dataobj[:].squeeze(2), nii_3ch.affine, nii_3ch.header.get_zooms()[:3], "la_3ch", seg=nii_3ch_seg))
+                self.planes.append(OptimizableImage(nii_3ch.dataobj[:].squeeze(2), nii_3ch.affine, nii_3ch.header.get_zooms()[:3], Path(subject.la3ch).name.split(".")[0], seg=nii_3ch_seg))
                 index += 1
             except FileNotFoundError as e:
                 print(f"Subject {subject.name}: 3ch image not found.\n", e)
@@ -55,12 +55,12 @@ class SubjectData:
             try:
                 nii_2ch = nib.load(subject.la2ch)
                 nii_2ch_seg = None
-                if subject.la4ch_seg is not None:
+                if subject.la2ch_seg is not None:
                     try:
                         nii_2ch_seg = nib.load(subject.la2ch_seg).dataobj[:]
                     except FileNotFoundError as e:
                         print(f"Subject {subject.name}: 2ch segmentation not found.")
-                self.planes.append(OptimizableImage(nii_2ch.dataobj[:].squeeze(2), nii_2ch.affine, nii_2ch.header.get_zooms()[:3], "la_2ch", seg=nii_2ch_seg))
+                self.planes.append(OptimizableImage(nii_2ch.dataobj[:].squeeze(2), nii_2ch.affine, nii_2ch.header.get_zooms()[:3], Path(subject.la2ch).name.split(".")[0], seg=nii_2ch_seg))
                 index += 1
             except FileNotFoundError as e:
                 print(f"Subject {subject.name}: 2ch image not found.\n", e)
@@ -76,7 +76,7 @@ class SubjectData:
             nii_seg = None
             if subject.la4ch_seg is not None:
                 nii_seg = nib.load(sa_lice_seg).dataobj[:]
-            self.planes.append(OptimizableImage(im_nii.dataobj[:].squeeze(2), im_nii.affine, im_nii.header.get_zooms()[:3], f"sa{i}-{len(subject.sax)}", seg=nii_seg))
+            self.planes.append(OptimizableImage(im_nii.dataobj[:].squeeze(2), im_nii.affine, im_nii.header.get_zooms()[:3], Path(sa_lice).name.split(".")[0], seg=nii_seg))
             index += 1
         assert min([min(i) for i in self.idx_pairs]) == 0
         assert max([max(i) for i in self.idx_pairs]) == len(self.planes) - 1

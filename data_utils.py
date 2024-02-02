@@ -36,12 +36,15 @@ def split_sax_into_slices(sax_path: str, save_dir: str, skip_exist=True) -> Tupl
 
     # If we assume the files have been processed correectly in the past, we can skip the process
     if skip_exist:
-        files = [str(i) for i in subject_save_dir.iterdir() if i.is_file() and str(i.name)[:3] != "seg" and str(i.name)[-7:] == ".nii.gz"]
-        seg_files = [str(i) for i in subject_save_dir.iterdir() if i.is_file() and str(i.name)[:3] == "seg" and str(i.name)[-7:] == ".nii.gz"]
-        if files:
-            expected_total = int(files[0].split("-")[-1].split(".")[0])
-            if len(files) == expected_total:
-                assert len(files) == len(seg_files)
+        sa_files = list(subject_save_dir.iterdir())
+        if sa_files:
+            # Number of slices is determined by the last two digits on the name files
+            num_slices = int(sa_files[0].name[-len(".nii.gz") - 2: -len(".nii.gz")])
+            files = [subject_save_dir / f"sa_{i:02d}-{num_slices:02d}.nii.gz" for i in range(num_slices)]
+            seg_files = [subject_save_dir / f"seg_sa_{i:02d}-{num_slices:02d}.nii.gz" for i in range(num_slices)]
+            if all([i.exists() for i in files]) and all([i.exists() for i in seg_files]):
+                files = [str(i) for i in files]
+                seg_files = [str(i) for i in seg_files]
                 return files, seg_files
 
     # Load volumes
@@ -71,12 +74,12 @@ def split_sax_into_slices(sax_path: str, save_dir: str, skip_exist=True) -> Tupl
 
         # Save this image slice individually
         slice_nii = nib.Nifti1Image(sax_im[:, :, slice_idx:slice_idx+1, :], slice_affine)
-        slice_path = str(subject_save_dir / f"sa_{slice_idx}-{sax_im.shape[2]}.nii.gz")
+        slice_path = str(subject_save_dir / f"sa_{slice_idx:02d}-{sax_im.shape[2]:02d}.nii.gz")
         nib.save(slice_nii, slice_path)
 
         # Save this segmentation slice individually
         seg_slice_nii = nib.Nifti1Image(seg_sax_im[:, :, slice_idx:slice_idx+1, :], slice_affine)
-        seg_slice_path = str(subject_save_dir / f"seg_sa_{slice_idx}-{sax_im.shape[2]}.nii.gz")
+        seg_slice_path = str(subject_save_dir / f"seg_sa_{slice_idx:02d}-{sax_im.shape[2]:02d}.nii.gz")
         nib.save(seg_slice_nii, seg_slice_path)
 
         slice_files.append(slice_path)
@@ -110,7 +113,7 @@ def find_subjects(dataset_dir: str, sax_slice_dataset_dir: str,
         if sax_slices is None or not sax_slices or remove_sa_slices:
             if remove_sa_slices:
                 try:
-                    shutil.rmtree(str(subj_dir / "sa_slices"))
+                    shutil.rmtree(str(sax_slice_dataset_dir / subj_dir.name / "sa_slices"))
                 except FileNotFoundError:
                     pass
             sa_file = subj_dir / "sa.nii.gz"
