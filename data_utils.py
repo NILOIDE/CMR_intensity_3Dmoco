@@ -32,6 +32,7 @@ def split_sax_into_slices(sax_path: str, save_dir: str, skip_exist=True) -> Tupl
     assert seg_sax_path.is_file()
     subject_save_dir = Path(save_dir)
     subject_save_dir.parent.mkdir(exist_ok=True)
+    subject_save_dir.parent.parent.mkdir(exist_ok=True)
     subject_save_dir.mkdir(exist_ok=True)
 
     # If we assume the files have been processed correectly in the past, we can skip the process
@@ -92,6 +93,7 @@ def find_subjects(dataset_dir: str, unaligned_dataset_dir: str,
                   remove_sa_slices: bool = True, num_subj: int = None) -> List[SubjectFiles]:
     dataset_dir = Path(dataset_dir)
     unaligned_dataset_dir = Path(unaligned_dataset_dir)
+    unaligned_dataset_dir.mkdir(exist_ok=True)
     assert dataset_dir.is_dir()
     subject_list = []
     subjects = list(dataset_dir.iterdir())
