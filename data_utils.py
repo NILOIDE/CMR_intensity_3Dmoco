@@ -88,10 +88,10 @@ def split_sax_into_slices(sax_path: str, save_dir: str, skip_exist=True) -> Tupl
     return slice_files, seg_slice_files
 
 
-def find_subjects(dataset_dir: str, sax_slice_dataset_dir: str,
-                  remove_sa_slices: bool = False, num_subj: int = None) -> List[SubjectFiles]:
+def find_subjects(dataset_dir: str, unaligned_dataset_dir: str,
+                  remove_sa_slices: bool = True, num_subj: int = None) -> List[SubjectFiles]:
     dataset_dir = Path(dataset_dir)
-    sax_slice_dataset_dir = Path(sax_slice_dataset_dir)
+    unaligned_dataset_dir = Path(unaligned_dataset_dir)
     assert dataset_dir.is_dir()
     subject_list = []
     subjects = list(dataset_dir.iterdir())
@@ -113,34 +113,43 @@ def find_subjects(dataset_dir: str, sax_slice_dataset_dir: str,
         if sax_slices is None or not sax_slices or remove_sa_slices:
             if remove_sa_slices:
                 try:
-                    shutil.rmtree(str(sax_slice_dataset_dir / subj_dir.name / "sa_slices"))
+                    shutil.rmtree(str(unaligned_dataset_dir / subj_dir.name / "sa_slices"))
                 except FileNotFoundError:
                     pass
             sa_file = subj_dir / "sa.nii.gz"
             if not sa_file.exists() or not sa_file.is_file() or sa_file.stat().st_size == 0:
                 continue
             try:
-                sax_slices, seg_sax_slices = split_sax_into_slices(str(sa_file), save_dir=str(sax_slice_dataset_dir / subj_dir.name / "sa_slices"))
+                sax_slices, seg_sax_slices = split_sax_into_slices(str(sa_file), save_dir=str(unaligned_dataset_dir / subj_dir.name / "sa_slices"))
             except Exception as e:
                 continue
-        la4ch = subj_dir / "la_4ch.nii.gz"
+        la4ch = unaligned_dataset_dir / subj_dir.name / "la_4ch.nii.gz"
         if not la4ch.exists() or not la4ch.is_file() or la4ch.stat().st_size == 0:
-            continue
-        la3ch = subj_dir / "la_3ch.nii.gz"
+            orig_path = subj_dir / "la_4ch.nii.gz"
+            if not orig_path.exists() or not orig_path.is_file() or orig_path.stat().st_size == 0:
+                continue
+            shutil.copy(str(orig_path), str(la4ch))
+        la3ch = unaligned_dataset_dir / subj_dir.name / "la_3ch.nii.gz"
         if not la3ch.exists() or not la3ch.is_file() or la3ch.stat().st_size == 0:
-            continue
-        la2ch = subj_dir / "la_2ch.nii.gz"
+            orig_path = subj_dir / "la_3ch.nii.gz"
+            if not orig_path.exists() or not orig_path.is_file() or orig_path.stat().st_size == 0:
+                continue
+            shutil.copy(str(orig_path), str(la3ch))
+        la2ch = unaligned_dataset_dir / subj_dir.name / "la_2ch.nii.gz"
         if not la2ch.exists() or not la2ch.is_file() or la2ch.stat().st_size == 0:
-            continue
-        seg_la4ch = subj_dir / "seg_la_4ch.nii.gz"
-        if not seg_la4ch.exists() or not seg_la4ch.is_file() or seg_la4ch.stat().st_size == 0:
-            continue
-        seg_la3ch = subj_dir / "seg_la_3ch.nii.gz"
+            orig_path = subj_dir / "la_2ch.nii.gz"
+            if not orig_path.exists() or not orig_path.is_file() or orig_path.stat().st_size == 0:
+                continue
+            shutil.copy(str(orig_path), str(la2ch))
+        seg_la4ch = unaligned_dataset_dir / subj_dir.name / "seg_la_4ch.nii.gz"
+        # if not seg_la4ch.exists() or not seg_la4ch.is_file() or seg_la4ch.stat().st_size == 0:
+        #     continue
+        seg_la3ch = unaligned_dataset_dir / subj_dir.name / "seg_la_3ch.nii.gz"
         # if not seg_la3ch.exists() or not seg_la3ch.is_file() or seg_la3ch.stat().st_size == 0:
         #     continue
-        seg_la2ch = subj_dir / "seg_la_2ch.nii.gz"
-        if not seg_la2ch.exists() or not seg_la2ch.is_file() or seg_la2ch.stat().st_size == 0:
-            continue
+        seg_la2ch = unaligned_dataset_dir / subj_dir.name / "seg_la_2ch.nii.gz"
+        # if not seg_la2ch.exists() or not seg_la2ch.is_file() or seg_la2ch.stat().st_size == 0:
+        #     continue
 
         subj_files = SubjectFiles(name=subj_dir.name, sax=sax_slices, la4ch=str(la4ch), la3ch=str(la3ch), la2ch=str(la2ch), sax_seg=seg_sax_slices, la4ch_seg=str(seg_la4ch), la3ch_seg=str(seg_la3ch), la2ch_seg=str(seg_la2ch))
         subject_list.append(subj_files)
@@ -337,7 +346,7 @@ if __name__ == '__main__':
     username = input("Username:")
     password = input("Password:")
     download_substring_matching_subjects([], download_dir, subjects_folder=remote_subj_dir, password=password)
-    subject_list = find_subjects(download_dir, sax_slice_dataset_dir="/home/pti/Documents/datasets/UKBB_subjects_unaligned")
+    subject_list = find_subjects(download_dir, unaligned_dataset_dir="/home/pti/Documents/datasets/UKBB_subjects_unaligned")
     print(len(subject_list))
     # ims_, anns_ = [i for i, j, in ann_pairs], [j for i, j, in ann_pairs]
   

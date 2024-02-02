@@ -383,7 +383,8 @@ def align_images(subject_dir: str, unregistered_dir: str, registered_dir: str,
                 print(f"Skipping...")
                 continue
         else:
-            shutil.rmtree(str(subj_path))
+            if subj_path.exists():
+                shutil.rmtree(str(subj_path))
         subject_data = SubjectData(sub)
 
         images_pad = subject_data.images_pad.clone()
