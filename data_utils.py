@@ -90,7 +90,7 @@ def split_sax_into_slices(sax_path: str, save_dir: str, skip_exist=True) -> Tupl
 
 
 def find_subjects(dataset_dir: str, unaligned_dataset_dir: str,
-                  remove_sa_slices: bool = True, num_subj: int = None) -> List[SubjectFiles]:
+                  remove_sa_slices: bool = False, num_subj: int = None) -> List[SubjectFiles]:
     dataset_dir = Path(dataset_dir)
     unaligned_dataset_dir = Path(unaligned_dataset_dir)
     unaligned_dataset_dir.mkdir(exist_ok=True)
@@ -114,7 +114,7 @@ def find_subjects(dataset_dir: str, unaligned_dataset_dir: str,
                 num_slices = int(sa_files[0].name[-len(".nii.gz") - 2: -len(".nii.gz")])
                 sax_slices = [subj_dir / "sa_slices" / f"sa_{i:02d}-{num_slices:02d}.nii.gz" for i in range(num_slices)]
                 seg_sax_slices = [subj_dir / "sa_slices" / f"seg_sa_{i:02d}-{num_slices:02d}.nii.gz" for i in range(num_slices)]
-                if len(sa_files) != num_slices or len(seg_sax_slices) != num_slices:
+                if len(sax_slices) != num_slices or len(seg_sax_slices) != num_slices:
                     sax_slices = None
                     seg_sax_slices = None
         if sax_slices is None:

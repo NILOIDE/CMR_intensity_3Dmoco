@@ -56,10 +56,10 @@ def plot_param_diff_before_after(results: Dict[Tuple[int, int], List[List[torch.
             deform = torch.tensor([r, r, r, t, t, t]).reshape((1, 6))
             deform = deform.tile((13, 1))
             rand_diff = (torch.rand((10, *deform.shape)) * deform - deform / 2).abs()
-            for v in rand_diff[:, :3].flatten():
+            for v in rand_diff[:, :, :3].flatten():
                 rand_list.append([r, t, f"±{str('{:.1f}'.format(r / 2))}° - ±{str('{:.1f}'.format(t / 2))}mm",
                                   v.detach().cpu().item(), "Starting rotation error (degrees)"])
-            for v in rand_diff[:, 3:].flatten():
+            for v in rand_diff[:, :, 3:].flatten():
                 rand_list.append([r, t, f"±{str('{:.1f}'.format(r / 2))}° - ±{str('{:.1f}'.format(t / 2))}mm",
                                   v.detach().cpu().item(), "Starting translation error (mm)"])
     rand_data = pd.DataFrame(rand_list, columns=["r", "t", "rt", "v", "Legend"])
@@ -67,6 +67,7 @@ def plot_param_diff_before_after(results: Dict[Tuple[int, int], List[List[torch.
         for subj in values:
             for diff in subj:
                 v = diff.abs().detach().cpu()
+                v[:, :3] = torch.minimum(v[:, :3], (2*torch.pi-v[:, :3]))
                 for v_ in v[:, :3].flatten():
                     v_ = to_degrees(v_)
                     data_list.append(
@@ -95,3 +96,4 @@ def plot_param_diff_before_after(results: Dict[Tuple[int, int], List[List[torch.
     plt.tight_layout()
     fig = bp.get_figure()
     fig.savefig("results_boxplot_before-after.png")
+    return

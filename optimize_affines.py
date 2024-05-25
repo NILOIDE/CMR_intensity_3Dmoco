@@ -18,7 +18,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "1"
 
 from geo_utils import get_image_plane_from_array, plane_intersection, closest_point_on_line, batch_normalize_vector
 from utils import normalize_image, normalize_image_with_mean_lv_value, fast_trilinear_interpolation, mat_to_params, \
-    params_to_mat, to_radians
+    params_to_mat, to_radians, to_degrees
 from data_utils import find_subjects
 from metrics import L2, L1
 
@@ -33,6 +33,9 @@ c_orange = (0, 127, 255)
 c_blue = (255, 0, 0)
 
 METRIC = L2()
+LR = 1e-4
+LINE_NUM_SAMPLES = 100
+LINE_STEP_MM = 2.5
 
 
 def visualize_intersection_differences(images, affines, affines_new, pair_indices, shapes, names=None):
@@ -179,7 +182,7 @@ def find_sampling_center(image_centers1, image_centers2, intersec_lines) -> torc
     return sampling_centers
 
 
-def compute_intersection_sampling_line(affines, pair_indices, shapes, sampling_step_mm=5.0, num_samples=100) -> torch.Tensor:
+def compute_intersection_sampling_line(affines, pair_indices, shapes, sampling_step_mm=LINE_STEP_MM, num_samples=LINE_NUM_SAMPLES) -> torch.Tensor:
     """ Compute a sampling line of num_samples points along the intersection lane between all plane pairs.
      Each line is centered on the average image centers. Each point is spaced sampling_step_mm appart. """
     planes = get_image_plane_from_array(affines)
@@ -271,7 +274,7 @@ def optimize_affines(images, affines, pair_indices, shapes, spacings,
     clamp_high = params_og + max_delta.tile((params_og.shape[0], 1))
 
     params = torch.nn.Parameter(params_og, requires_grad=True)
-    optimizer = torch.optim.Adam([params], lr=1e-3)
+    optimizer = torch.optim.Adam([params], lr=LR)
     losses = []
     for i in tqdm.tqdm(range(max_epochs)):
         optimizer.zero_grad()
@@ -289,7 +292,7 @@ def optimize_affines(images, affines, pair_indices, shapes, spacings,
         loss.backward()
         optimizer.step()
         # scheduler.step(loss)
-        params.data.clamp(clamp_low, clamp_high)
+        # params.data.clamp(clamp_low, clamp_high)
 
     param_diff = mat_to_params(best_affines.clone(), spacings, needs_flip) - mat_to_params(affines.clone(), spacings, needs_flip)
     if display_loss_curve and losses:
@@ -349,11 +352,11 @@ def parse_command_line():
                                )
     parser_random.add_argument("-e", "--max_epochs",
                                help="Maximum optimization epochs", required=False,
-                               default=1000,
+                               default=5000,
                                )
     parser_random.add_argument("-ese", "--early_stop_epochs",
                                help="Number of epochs of no impovement before optimization stops", required=False,
-                               default=100,
+                               default=2000,
                                )
     parser_random.add_argument("-n", "--num_subjects",
                                help="Number of subjects to use.", required=False,
@@ -373,7 +376,7 @@ def align_images(subject_dir: str, unregistered_dir: str, registered_dir: str,
     num_subjects = len(subject_list) if num_subjects <= 0 else num_subjects
     save_path = Path(registered_dir)
     save_path.mkdir(exist_ok=True)
-    for idx, sub in enumerate(subject_list[:num_subjects]):
+    for idx, sub in enumerate(subject_list[0:num_subjects]):
         print(f"Subject: {sub.name}     Idx: {idx}")
         subj_path = save_path / sub.name
 
@@ -424,7 +427,7 @@ def align_images(subject_dir: str, unregistered_dir: str, registered_dir: str,
 
 def random_align_sweep(registered_dir, max_epochs, early_stop_epochs, num_subjects, num_randomizations):
     print("Deforming....", registered_dir)
-    subject_list = find_subjects(registered_dir, registered_dir)
+    subject_list = find_subjects(registered_dir, registered_dir, remove_sa_slices=False)
     num_subjects = len(subject_list) if num_subjects <= 0 else num_subjects
     rot_deform = [0, 5, 15, 45]  # In degrees
     tra_deform = [0, 5, 15, 45]  # In mm
@@ -435,9 +438,10 @@ def random_align_sweep(registered_dir, max_epochs, early_stop_epochs, num_subjec
             start = min([len(i) for i in results.values()])
             results = {k: v[:start] for k, v in results.items()}
     except (FileNotFoundError, FileExistsError) as e:
+        start = 0
         results = {}
 
-    for idx, sub in enumerate(subject_list[:num_subjects]):
+    for idx, sub in enumerate(subject_list[start:num_subjects]):
         print(f"Subject: {sub.name}     Idx: {idx}")
         subject_data = SubjectData(sub)
         images_pad = subject_data.images_pad.clone()
@@ -458,11 +462,20 @@ def random_align_sweep(registered_dir, max_epochs, early_stop_epochs, num_subjec
                 print(j)
                 def_params = params.clone() + torch.rand_like(params) * deform - deform / 2
                 def_affines = params_to_mat(def_params, spacings, aff_needs_flip)
-                _, _, param_diff = optimize_affines(images_pad, def_affines, idx_pairs, shapes, spacings,
-                                                    max_epochs=max_epochs, early_stop_epochs=early_stop_epochs)
+                start_loss = compute_pairwise_loss(images_pad, def_affines, idx_pairs, shapes)
+                print(f"Start loss: {start_loss.mean()}")
+                new_affines, _, param_diff = optimize_affines(images_pad, def_affines, idx_pairs, shapes, spacings,
+                                                              max_epochs=max_epochs,
+                                                              early_stop_epochs=early_stop_epochs)
+                final_loss = compute_pairwise_loss(images_pad, new_affines, idx_pairs, shapes)
+                print(f"Final loss: {final_loss.mean()}")
+
                 result.append(param_diff.detach().cpu())
-            print(np.mean([i.abs().mean().detach().cpu().numpy() for i in result]),
-                  np.std([i.abs().mean().detach().cpu().numpy() for i in result]))
+            print(to_degrees(np.mean([i.abs()[:, :3].mean().detach().cpu().numpy() for i in result])),
+                  np.mean([i.abs()[:, 3:].mean().detach().cpu().numpy() for i in result]))
+            print(to_degrees(np.max([i.abs()[:, :3].max().detach().cpu().numpy() for i in result])),
+                  np.max([i.abs()[:, 3:].max().detach().cpu().numpy() for i in result]))
+
             try:
                 results[(r, t)].append(result)
             except KeyError:
