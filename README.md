@@ -1,4 +1,6 @@
 # Intensity-based 3D motion correction for cardiac MR images
+###(This project is deprecated. See [the new release of this project](https://github.com/NILOIDE/CMR_motion_correction) for a faster, more accurate version of the motion correction tool which includes an interactive 3d visualization tool)
+
 This is the code repository for our ISBI submission: 
 
 
